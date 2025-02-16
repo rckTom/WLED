@@ -5697,14 +5697,16 @@ uint16_t mode_2Dtorch(void){                    // By: Thomas Schmid (tom@lfence
   const int cooldown_fire = map8(SEGMENT.intensity, 0, 20) + 35;
   const int cooldown_spark = map8(SEGMENT.custom1, 0, 20) + 35;
 
+  const auto XY = [screenWidth](int x, int y) { return y * screenWidth + x;};
+
   if (!SEGENV.allocateData(sizeof(TorchPixelData)*(screenHeight + extraLines)*(screenWidth))) return mode_static(); //allocation failed
   TorchPixelData *data = reinterpret_cast<TorchPixelData*>(SEGENV.data);
 
   for (int x = 0; x < screenWidth; x++) {
-    data[x].fire = random8() > 150 ? 255 : 0;
-    if (random8() % 2 == 0 && random8() > 254) {
-        data[screenWidth + x].spark = 128;
-        data[screenWidth + x+2].spark = 128;
+    data[x].fire = hw_random8() > 150 ? 255 : 0;
+    if (hw_random8() % 2 == 0 && hw_random8() > 254) {
+        data[XY(x, 0)].spark = 128;
+        data[XY(x+2, 0)].spark = 128;
     }
   }
 
@@ -5713,25 +5715,25 @@ uint16_t mode_2Dtorch(void){                    // By: Thomas Schmid (tom@lfence
       for (int x = 0; x < screenWidth; x++) {
           int y_minus_1 = (y-1) > 0 ? (y-1) : 0;
           int y_minus_2 = (y-2) > 0 ? (y-2) : 0;
-          data[screenWidth * y + x].fire =  ((
-            data[screenWidth * y_minus_1 + ((x-1) % screenWidth)].fire +
-            data[screenWidth * y_minus_1 + x].fire +
-            data[screenWidth * y_minus_1 + ((x+1) % screenWidth)].fire +
-            data[screenWidth * y_minus_2 + x].fire
+          data[XY(x,y)].fire =  ((
+            data[XY((x-1) % screenWidth, y_minus_1)].fire +
+            data[XY(x, y_minus_1)].fire +
+            data[XY((x+1) % screenWidth, y_minus_1)].fire +
+            data[XY(x,y_minus_2)].fire
           ) * 8) / (cooldown_fire + 1);
 
-          data[screenWidth * y + x].spark =  ((
-            data[screenWidth * y_minus_1 + ((x-1) % screenWidth)].spark / 4 +
-            data[screenWidth * y_minus_1 + ((x+1) % screenWidth)].spark / 4 +
-            data[screenWidth * y_minus_1 + (x)].spark * 4 +
-            data[screenWidth * y_minus_2 + x].spark
+          data[XY(x,y)].spark =  ((
+            data[XY((x-1) % screenWidth, y_minus_1)].spark / 4 +
+            data[XY((x+1) % screenWidth, y_minus_1)].spark / 4 +
+            data[XY(x, y_minus_1)].spark * 4 +
+            data[XY(x, y_minus_2)].spark
           ) * 1) / ((cooldown_spark / 10) + 1);
       }
   }
 
   for (int x = 0; x < screenWidth; x++) {
     for (int y = 0; y < screenHeight; y++) {
-      uint8_t c = (((data[(y+extraLines)*screenWidth + x].fire + data[(y+extraLines)*screenWidth + x].spark) / 2) * 3);
+      uint8_t c = (((data[XY(x, y+extraLines)].fire + data[XY(x, y+extraLines)].spark) / 2) * 3);
       SEGMENT.setPixelColorXY(x, screenHeight-y-1, ColorFromPalette(SEGPALETTE, c, 0xFF, LINEARBLEND_NOWRAP));
     }
   }
